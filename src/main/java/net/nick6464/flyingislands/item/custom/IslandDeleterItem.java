@@ -23,9 +23,9 @@ public class IslandDeleterItem extends Item {
     }
 
     public void deleteBlocks(ItemUsageContext context, boolean[][][] blocks) {
-        for (int x = 0; x < IslandSpawnerItem.ISLAND_SIZE; x++) {
-            for (int y = 0; y < IslandSpawnerItem.ISLAND_SIZE; y++) {
-                for (int z = 0; z < IslandSpawnerItem.ISLAND_SIZE; z++) {
+        for (int x = 0; x < IslandSpawnerItem.ISLAND_CONTAINER_SIZE; x++) {
+            for (int y = 0; y < IslandSpawnerItem.ISLAND_CONTAINER_SIZE; y++) {
+                for (int z = 0; z < IslandSpawnerItem.ISLAND_CONTAINER_SIZE; z++) {
                     if (blocks[x][y][z]) {
                         context.getWorld().removeBlock(context.getBlockPos().add(x, y, z), false);
                     }
