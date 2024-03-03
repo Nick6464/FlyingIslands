@@ -5,13 +5,14 @@ import net.minecraft.item.Item;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.registry.Registry;
 import net.nick6464.flyingislands.FlyingIslands;
+import net.nick6464.flyingislands.item.custom.IslandDeleterItem;
 import net.nick6464.flyingislands.item.custom.IslandSpawnerItem;
 
 public class ModItems {
     public static final Item ISLAND_SPAWNER = registerItem("island_spawner",
             new IslandSpawnerItem(new FabricItemSettings().maxCount(1).group(ModItemGroup.MOD_ITEM_GROUP)));
     public static final Item ISLAND_DELETER = registerItem("island_deleter",
-            new Item(new FabricItemSettings().maxCount(1).group(ModItemGroup.MOD_ITEM_GROUP)));
+            new IslandDeleterItem(new FabricItemSettings().maxCount(1).group(ModItemGroup.MOD_ITEM_GROUP)));
 
 
     public static Item registerItem(String name, Item item) {

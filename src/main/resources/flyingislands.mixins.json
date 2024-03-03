@@ -1,17 +1,8 @@
 {
   "required": true,
   "minVersion": "0.8",
-<<<<<<< Updated upstream:src/main/resources/modid.mixins.json
-  "package": "net.fabricmc.example.mixin",
-<<<<<<< Updated upstream:src/main/resources/modid.mixins.json
-  "compatibilityLevel": "JAVA_17",
-=======
   "compatibilityLevel": "JAVA_8",
-=======
   "package": "net.nick6464.flyingislands.mixin",
-  "compatibilityLevel": "JAVA_17",
->>>>>>> Stashed changes:src/main/resources/flyingislands.mixins.json
->>>>>>> Stashed changes:src/main/resources/flyingislands.mixins.json
   "mixins": [
   ],
   "client": [

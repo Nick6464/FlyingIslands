@@ -1,10 +1,10 @@
 package net.nick6464.flyingislands.item.custom;
 
-import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemUsageContext;
 import net.minecraft.util.ActionResult;
+import net.minecraft.util.Hand;
 import net.nick6464.flyingislands.FlyingIslands;
 
 public class IslandSpawnerItem extends Item {
@@ -12,6 +12,8 @@ public class IslandSpawnerItem extends Item {
     static int ISLAND_SIZE = 30;
     static int ISLAND_GROUND_HEIGHT = 15;
     static int SEED = 12345;
+    static float FREQUENCY = 0.6f;
+    static float MAGNITUDE = 3f;
 
 
     public IslandSpawnerItem(Settings settings) {
@@ -20,12 +22,15 @@ public class IslandSpawnerItem extends Item {
 
     @Override
     public ActionResult useOnBlock(ItemUsageContext context) {
-
+        if(context.getHand() == Hand.MAIN_HAND) {
         boolean[][][] blocks = generateIsland();
 
         placeBlocks(context, blocks);
 
         return ActionResult.SUCCESS;
+        } else {
+            return ActionResult.FAIL;
+        }
     }
 
     public void placeBlocks(ItemUsageContext context, boolean[][][] blocks) {
@@ -43,12 +48,11 @@ public class IslandSpawnerItem extends Item {
 
     public static boolean[][][] generateIsland(){
         boolean[][][] blocks = new boolean[ISLAND_SIZE][ISLAND_SIZE][ISLAND_SIZE];
-
         boolean[][] noisyCircle = new boolean[ISLAND_SIZE][ISLAND_SIZE];
         for (int x = 0; x < ISLAND_SIZE; x++) {
             for (int z = 0; z < ISLAND_SIZE; z++) {
                 double distance = Math.sqrt(Math.pow(x - ISLAND_GROUND_HEIGHT, 2) + Math.pow(z - ISLAND_GROUND_HEIGHT, 2));
-                double noise = OpenSimplex2S.noise2_ImproveX(SEED, x * 0.625, z * 0.625);
+                double noise = OpenSimplex2S.noise2_ImproveX(SEED, x * FREQUENCY, z * FREQUENCY) * MAGNITUDE;
 
                 noisyCircle[x][z] = distance + noise < ISLAND_GROUND_HEIGHT;
                 blocks[x][ISLAND_GROUND_HEIGHT][z] = noisyCircle[x][z];
