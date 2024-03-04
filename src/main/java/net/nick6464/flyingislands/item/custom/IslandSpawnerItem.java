@@ -17,8 +17,8 @@ public class IslandSpawnerItem extends Item {
     static int SEED = 12345;
     static float FREQUENCY = 0.1f;
     static float MAGNITUDE = 2f;
-    static int DETAIL = ISLAND_RADIUS /  3;
-
+    static int RADIAL_DETAIL_MULTIPLIER = ISLAND_RADIUS /  3;
+    static int SMOOTHING_PASSES = 2;
 
     public IslandSpawnerItem(Settings settings) {
         super(settings);
@@ -51,11 +51,97 @@ public class IslandSpawnerItem extends Item {
     }
 
     public static boolean[][][] generateIsland() {
+        boolean[][] groundLayer = new boolean[ISLAND_CONTAINER_SIZE][ISLAND_CONTAINER_SIZE];
         boolean[][][] blocks = new boolean[ISLAND_CONTAINER_SIZE][ISLAND_CONTAINER_SIZE][ISLAND_CONTAINER_SIZE];
-        boolean[][] noisyCircle = new boolean[ISLAND_CONTAINER_SIZE][ISLAND_CONTAINER_SIZE];
 
+        // Generate the radial noise to create a circle
+        groundLevelGenerator(groundLayer, blocks);
+
+        undersideGenerator(groundLayer, blocks);
+
+        return blocks;
+    }
+
+    public static void undersideGenerator(boolean[][] groundLayer, boolean[][][] blocks) {
+        // Generate a 2d array that represents how far from an edge the block is
+        float[][] underside = new float[ISLAND_CONTAINER_SIZE][ISLAND_CONTAINER_SIZE];
+
+        // Loop over the groundLayer and set the underside array to the distance from the edge
+        for (int x = 0; x < ISLAND_CONTAINER_SIZE; x++) {
+            for (int z = 0; z < ISLAND_CONTAINER_SIZE; z++) {
+                // If there is a corresponding block in the groundLayer, determine its distance from the edge
+                if (groundLayer[x][z]) {
+                    underside[x][z] = distanceFromEdge(x, z, groundLayer);
+                }
+            }
+        }
+
+        // Loop over the underside array and place the value from the underside array in the 3D
+        // array under the ground layer, a value of 4 means there are 4 blocks under the ground layer
+        for (int x = 0; x < ISLAND_CONTAINER_SIZE; x++) {
+            for (int z = 0; z < ISLAND_CONTAINER_SIZE; z++) {
+                for (int y = ISLAND_GROUND_HEIGHT; y > ISLAND_GROUND_HEIGHT - (int) underside[x][z]; y--) {
+                    blocks[x][y][z] = true;
+                }
+            }
+        }
+
+    }
+
+    public static float distanceFromEdge(int x, int z, boolean[][] groundLayer) {
+        // Find the nearest value in the groundLayer that is false
+        int distance = 0;
+        while (true) {
+            for (int i = -distance; i <= distance; i++) {
+                if (x + i >= 0 && x + i < ISLAND_CONTAINER_SIZE && z - distance >= 0 && z - distance < ISLAND_CONTAINER_SIZE) {
+                    if (!groundLayer[x + i][z - distance]) {
+                        return distance;
+                    }
+                }
+                if (x + i >= 0 && x + i < ISLAND_CONTAINER_SIZE && z + distance >= 0 && z + distance < ISLAND_CONTAINER_SIZE) {
+                    if (!groundLayer[x + i][z + distance]) {
+                        return distance;
+                    }
+                }
+                if (z + i >= 0 && z + i < ISLAND_CONTAINER_SIZE && x - distance >= 0 && x - distance < ISLAND_CONTAINER_SIZE) {
+                    if (!groundLayer[x - distance][z + i]) {
+                        return distance;
+                    }
+                }
+                if (z + i >= 0 && z + i < ISLAND_CONTAINER_SIZE && x + distance >= 0 && x + distance < ISLAND_CONTAINER_SIZE) {
+                    if (!groundLayer[x + distance][z + i]) {
+                        return distance;
+                    }
+                }
+            }
+            distance++;
+        }
+    }
+
+    public static void groundLevelGenerator(boolean[][] groundLayer, boolean[][][] blocks){
+        // Generate the radial noise to create a circle
+        radialNoiseGenerator(groundLayer);
+
+        // Smooth the hard corners of the circle
+        smoothHardCorners(groundLayer);
+
+        // Flood fill the island to make it solid
+        floodFill(groundLayer, ISLAND_CONTAINER_RADIUS, ISLAND_CONTAINER_RADIUS);
+
+        // Place the blocks in the 3D array from the 2D array
+        for (int x = 0; x < ISLAND_CONTAINER_SIZE; x++) {
+            for (int z = 0; z < ISLAND_CONTAINER_SIZE; z++) {
+                if (groundLayer[x][z]) {
+                    blocks[x][ISLAND_GROUND_HEIGHT][z] = true;
+                }
+            }
+        }
+    }
+
+    //Radial noise function to create a circle
+    public static void radialNoiseGenerator(boolean[][] noisyCircle){
         // Use the block count in the circle to determine the number of blocks in a perfect circle
-        int blockCount = DETAIL * blocksInCircle();
+        int blockCount = RADIAL_DETAIL_MULTIPLIER * blocksInCircle();
 
         // Divide a perfect circle by the number of blocks in a circle, this is the number of
         // angles to use to generate the circle. A block will be placed at each angle, and 1D noise
@@ -64,7 +150,7 @@ public class IslandSpawnerItem extends Item {
         // Loop over every angle
         for (int angle = 0; angle < blockCount; angle++) {
             // Determine the distance from the center of the circle to the block
-            float noise = OpenSimplex2S.noise2(SEED, 1, (double) angle / DETAIL * FREQUENCY);
+            float noise = OpenSimplex2S.noise2(SEED, 1, (double) angle / RADIAL_DETAIL_MULTIPLIER * FREQUENCY);
             double distance = ISLAND_RADIUS + noise * MAGNITUDE;
 
             // Determine the angle in radians
@@ -85,21 +171,37 @@ public class IslandSpawnerItem extends Item {
                 noisyCircle[x][z] = true;
             }
         }
+    }
 
-        // Remove the har corners of the circle
-        // eg
-        // 0 0 0 0 0
-        // 0 1 1 1 0
-        // 0 1 0 0 0
-        // 0 1 0 0 0
-        // would become
-        // 0 0 0 0 0
-        // 0 0 1 1 0
-        // 0 1 0 0 0
-        // 0 1 0 0 0
-        // by removing the hard corners
+    // Flood fill algorithm to make the island solid
+    public static void floodFill(boolean[][] blocks, int x, int z) {
+        if (x < 0 || x >= ISLAND_CONTAINER_SIZE || z < 0 || z >= ISLAND_CONTAINER_SIZE) {
+            return;
+        }
+        if (blocks[x][z]) {
+            return;
+        }
+        blocks[x][z] = true;
+        floodFill(blocks, x + 1, z);
+        floodFill(blocks, x - 1, z);
+        floodFill(blocks, x, z + 1);
+        floodFill(blocks, x, z - 1);
+    }
 
-        for (int smoothing = 0; smoothing < 2; smoothing++){
+    // Remove the hard corners of the circle
+    // eg
+    // 0 0 0 0 0
+    // 0 1 1 1 0
+    // 0 1 0 0 0
+    // 0 1 0 0 0
+    // would become
+    // 0 0 0 0 0
+    // 0 0 1 1 0
+    // 0 1 0 0 0
+    // 0 1 0 0 0
+    // by removing the hard corners
+    public static void smoothHardCorners(boolean[][] noisyCircle){
+        for (int smoothing = 0; smoothing < SMOOTHING_PASSES; smoothing++){
             for (int x = 0; x < ISLAND_CONTAINER_SIZE; x++) {
                 for (int z = 0; z < ISLAND_CONTAINER_SIZE; z++) {
                     if (noisyCircle[x][z]) {
@@ -121,18 +223,8 @@ public class IslandSpawnerItem extends Item {
                 }
             }
         }
-
-        // Add the noisy circle to the blocks array at the ground height
-        for (int x = 0; x < ISLAND_CONTAINER_SIZE; x++) {
-            for (int z = 0; z < ISLAND_CONTAINER_SIZE; z++) {
-                if (noisyCircle[x][z]) {
-                    blocks[x][ISLAND_GROUND_HEIGHT][z] = true;
-                }
-            }
-        }
-
-        return blocks;
     }
+
 
     // This method should return the number of blocks in a perfect circle based on the ISLAND_SIZE
     public static int blocksInCircle() {
