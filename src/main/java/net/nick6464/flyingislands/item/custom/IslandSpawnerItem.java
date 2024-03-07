@@ -22,19 +22,23 @@ public class IslandSpawnerItem extends Item {
         super(settings);
     }
 
+
     @Override
     public ActionResult useOnBlock(ItemUsageContext context) {
-        FlyingIsland flyingIsland = new FlyingIsland(SEED);
-        flyingIsland.generateIsland();
-        if(context.getHand() == Hand.MAIN_HAND) {
-            flyingIsland.placeIsland(context.getWorld(), context.getBlockPos());
-            return ActionResult.SUCCESS;
-        } else if (context.getHand() == Hand.OFF_HAND){
-            flyingIsland.deleteIsland(context.getWorld(), context.getBlockPos());
-            return ActionResult.SUCCESS;
+        if (!context.getWorld().isClient()) {
+            FlyingIslands.LOGGER.info("Using IslandSpawnerItem on block");
+            FlyingIsland flyingIsland = new FlyingIsland(SEED, context);
+            flyingIsland.generateIsland();
+            if (context.getHand() == Hand.MAIN_HAND) {
+                flyingIsland.placeIsland(context.getWorld(), context.getBlockPos());
+            }
+            else if (context.getHand() == Hand.OFF_HAND) {
+                flyingIsland.deleteIsland(context.getWorld(), context.getBlockPos());
+                return ActionResult.SUCCESS;
+            }
+            return ActionResult.FAIL;
         }
-        return ActionResult.FAIL;
-
+        return ActionResult.PASS;
     }
 
     // When shift right-clicking not at a block, randomise the SEED and display it in the chat
