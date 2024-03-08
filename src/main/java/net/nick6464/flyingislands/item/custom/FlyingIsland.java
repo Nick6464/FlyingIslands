@@ -55,13 +55,6 @@ public class FlyingIsland extends GroundLayer {
         // Generates the blocks according to desired biome along with foliage and trees
         blockPopulator();
         sandDecorator();
-
-        if(context.getHand() != Hand.OFF_HAND){
-            // Foliage and tree decorator
-            IslandDecorators decorator = new IslandDecorators(this);
-            decorator.plainsDecorator();
-        }
-
     }
 
     // ------------------------------- PLACER AND DELETER -------------------------------
@@ -185,6 +178,41 @@ public class FlyingIsland extends GroundLayer {
             // Use flood fill in 3 dimensions to fill the water layer
             floodFill3D(lowestX, ISLAND_GROUND_HEIGHT, lowestZ);
         }
+
+        // Generate rivers
+        riverGenerator();
+    }
+
+    public void riverGenerator() {
+        boolean genRiver = generateRandomNumber(0, 1) == 1;
+
+        if(!genRiver)
+            return;
+
+        // Find the furthest block of water away from the center of the island
+        int furthestX = 0;
+        int furthestZ = 0;
+        int furthestDistance = 0;
+
+        for (int x = 0; x < ISLAND_CONTAINER_SIZE; x++) {
+            for (int z = 0; z < ISLAND_CONTAINER_SIZE; z++) {
+                if (water[x][ISLAND_GROUND_HEIGHT][z]) {
+                    int distance = (int) Math.sqrt(Math.pow(x - ISLAND_CONTAINER_SIZE / 2, 2) + Math.pow(z - ISLAND_CONTAINER_SIZE / 2, 2));
+                    if (distance > furthestDistance) {
+                        furthestDistance = distance;
+                        furthestX = x;
+                        furthestZ = z;
+                    }
+                }
+            }
+        }
+
+        // Generate a river from the furthest block of water outwards
+        riverCreator(furthestX, furthestZ);
+    }
+
+    public void riverCreator(int x, int z) {
+        //
     }
 
     // 3D Flood Fill algorithm to fill the water layer
@@ -389,10 +417,7 @@ public class FlyingIsland extends GroundLayer {
         if (z - 1 >= 0 && getWater(x, y, z - 1)) {
             return true;
         }
-        if (y + 1 < ISLAND_CONTAINER_SIZE && getWater(x, y + 1, z)) {
-            return true;
-        }
-        return false;
+        return y + 1 < ISLAND_CONTAINER_SIZE && getWater(x, y + 1, z);
     }
 
     private static boolean getWater(int x, int y, int z) {
