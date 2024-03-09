@@ -20,8 +20,6 @@ public class IslandDecorators {
         IslandDecorators.random = new LocalRandom(island.SEED);
     }
     public static void plainsDecorator() {
-        FlyingIslands.LOGGER.info("Decorating plains");
-
         for (int x = 0; x < FlyingIsland.ISLAND_CONTAINER_SIZE; x++) {
             for (int z = 0; z < FlyingIsland.ISLAND_CONTAINER_SIZE; z++) {
                 if (island.groundLayer.getBlock(x, z)) {
@@ -30,6 +28,10 @@ public class IslandDecorators {
 
                     int groundY = getGroundHeight(x, z);
                     int rand = FlyingIsland.generateRandomNumber(0, 10);
+
+                    // Ensure all values are within the island
+                    if (groundY < 0 || groundY > FlyingIsland.ISLAND_CONTAINER_SIZE)
+                        continue;
 
                     if (island.getBlock(x, groundY, z) == Blocks.GRASS_BLOCK) {
                         if (rand < 5)
@@ -96,12 +98,6 @@ public class IslandDecorators {
                     new BlockPos(island.context.getBlockPos().getX() + x,
                             yLevel + 1,
                             island.context.getBlockPos().getZ() + z));
-
-        if(tree || flowers)
-            FlyingIslands.LOGGER.info("Decorated at " + x + ", " + y + ", " + z);
-        else
-            FlyingIslands.LOGGER.info("Failed to decorate at " + x + ", " + y + ", " + z);
-
     }
 
     private static int getGroundHeight(int x, int z) {
