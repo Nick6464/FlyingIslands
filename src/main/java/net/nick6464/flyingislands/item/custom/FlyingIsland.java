@@ -70,6 +70,7 @@ public class FlyingIsland extends GroundLayer {
         context.getPlayer().sendMessage(Text.of("Underside Magnitude: " + UNDERSIDE_MAGNITUDE), false);
         context.getPlayer().sendMessage(Text.of("Underside Frequency: " + UNDERSIDE_FREQUENCY), false);
         context.getPlayer().sendMessage(Text.of("Island Ground Height: " + ISLAND_GROUND_HEIGHT), false);
+        context.getPlayer().sendMessage(Text.of("Island Ground Y: " + Math.addExact(ISLAND_GROUND_HEIGHT, context.getBlockPos().getY())), false);
         context.getPlayer().sendMessage(Text.of("Island Size: " + ISLAND_SIZE), false);
         context.getPlayer().sendMessage(Text.of("Island Container Size: " + ISLAND_CONTAINER_SIZE), false);
         context.getPlayer().sendMessage(Text.of("Island Container Radius: " + ISLAND_CONTAINER_RADIUS), false);
@@ -98,7 +99,7 @@ public class FlyingIsland extends GroundLayer {
         blockPopulator();
 
         // Smoothing the edges of the island
-        blockSmoothing();
+//        blockSmoothing();
 
         sandDecorator();
 
@@ -370,7 +371,6 @@ public class FlyingIsland extends GroundLayer {
     // ------------------------------- TOPSIDE GENERATOR -------------------------------
     public void topsideGenerator() {
         // Generate a 2d array that represents how far from an edge the block is
-
         // Loop over the groundLayer and set the topside array to the distance from the edge
         for (int x = 0; x < ISLAND_CONTAINER_SIZE; x++) {
             for (int z = 0; z < ISLAND_CONTAINER_SIZE; z++) {
@@ -402,11 +402,11 @@ public class FlyingIsland extends GroundLayer {
                 // A negative height will set the blocks at that position to false
                 int height = (int) (ISLAND_GROUND_HEIGHT + noise);
                 if (noise < 0) {
-                    for (int y = height + 1; y <= ISLAND_GROUND_HEIGHT + TOPSIDE_OFFSET; y++) {
+                    for (int y = height + 1; y <= ISLAND_GROUND_HEIGHT; y++) {
                         shape[x][y][z] = false;
                     }
                 } else {
-                    for (int y = (int) (ISLAND_GROUND_HEIGHT + TOPSIDE_OFFSET); y <= height; y++) {
+                    for (int y = (int) (ISLAND_GROUND_HEIGHT); y <= height; y++) {
                         shape[x][y][z] = true;
                     }
                 }

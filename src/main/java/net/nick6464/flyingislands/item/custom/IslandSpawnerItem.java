@@ -16,7 +16,7 @@ import java.util.ArrayList;
 
 public class IslandSpawnerItem extends Item {
 
-    public int SEED = 432;
+    public int SEED = 998;
 
     public IslandSpawnerItem(Settings settings) {
         super(settings);
