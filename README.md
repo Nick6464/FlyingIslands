@@ -1,9 +1,15 @@
-# Fabric Example Mod
+# Flying Islands
 
-## Setup
+## Description
+This is a mod made using the Fabric API that adds Flying Islands to Minecraft. I made this because I play a lot of Skyblock challenges and always wanted my bases to be on natural looking Islands in the sky
 
-For setup instructions please see the [fabric wiki page](https://fabricmc.net/wiki/tutorial:setup) that relates to the IDE that you are using.
+## Features
+- Flying Islands
+- Fully Customizable Island Generation
+- Customizable Island Sizes
+- Customizable Island Heights
+- Currently only has Plains Biome Islands
 
-## License
-
-This template is available under the CC0 license. Feel free to learn from it and incorporate it in your own projects.
+## Goals
+- Custom Islands for all Biomes and Nether Biomes
+- Customizable Island Spawning in the Overworld, Nether and End with natural world generation
