@@ -374,13 +374,6 @@ public class FlyingIsland extends GroundLayer {
                 }
             }
         }
-
-        // Generate a river from the furthest block of water outwards
-        riverCreator(furthestX, furthestZ);
-    }
-
-    public void riverCreator(int x, int z) {
-        // TODO: Implement riverCreator
     }
 
     // 3D Flood Fill algorithm to fill the water layer
@@ -697,4 +690,6 @@ public class FlyingIsland extends GroundLayer {
         }
         return -1;
     }
+
+
 }
