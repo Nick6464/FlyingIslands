@@ -17,15 +17,13 @@ public class IslandDecorators {
     public IslandDecorators(FlyingIsland island) {
         super();
         IslandDecorators.island = island;
-        IslandDecorators.random = new LocalRandom(island.SEED);
+        IslandDecorators.random = new LocalRandom(FlyingIsland.SEED);
     }
     public static void plainsDecorator() {
         for (int x = 0; x < FlyingIsland.ISLAND_CONTAINER_SIZE; x++) {
             for (int z = 0; z < FlyingIsland.ISLAND_CONTAINER_SIZE; z++) {
-                if (island.groundLayer.getBlock(x, z)) {
                     if (FlyingIsland.generateRandomNumber(1, 30) != 1)
                         continue;
-
                     int groundY = getGroundHeight(x, z);
                     int rand = FlyingIsland.generateRandomNumber(0, 10);
 
@@ -71,7 +69,6 @@ public class IslandDecorators {
                                 decorator(x, groundY, z,
                                     OceanConfiguredFeatures.KELP.value());
                         }
-                    }
                 }
             }
         }

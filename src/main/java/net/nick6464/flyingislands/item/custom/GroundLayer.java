@@ -14,6 +14,7 @@ public class GroundLayer {
     public static int SEED;
     public static float GROUNDLAYER_FREQUENCY = 0f;
     static float GROUNDLAYER_MAGNITUDE = 2f;
+    public static float LAKE_MAGNITUDE = 0.5f;
     static int SMOOTHING_PASSES = 2;
     public static Random random;
 
@@ -77,8 +78,6 @@ public class GroundLayer {
             // The x and z coordinates are centered around the x: ISLAND_RADIUS, y: ISLAND_RADIUS point
             int x = (int) (ISLAND_CONTAINER_RADIUS + ISLAND_RADIUS * Math.cos(angleFromCenter));
             int z = (int) (ISLAND_CONTAINER_RADIUS + ISLAND_RADIUS * Math.sin(angleFromCenter));
-
-            FlyingIslands.LOGGER.info("x: " + x + ", z: " + z);
 
             // Set the block at (x, z) to true if it's within the valid range
             if (x >= 0 && x < ISLAND_CONTAINER_SIZE && z >= 0 && z < ISLAND_CONTAINER_SIZE) {

@@ -8,17 +8,13 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.nick6464.flyingislands.FlyingIslands;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.Objects;
+import java.util.*;
 
 
 public class FlyingIsland extends GroundLayer {
     public static int SEED;
     ItemUsageContext context;
-    static boolean[][][] shape = new boolean[0][][];
-    private static boolean[][][] water = new boolean[0][][];
-    final Block[][][] blocks;
+    Block[][][] blocks;
     protected boolean[][] trees;
     int ISLAND_GROUND_HEIGHT;
     double UNDERSIDE_FREQUENCY;
@@ -40,18 +36,16 @@ public class FlyingIsland extends GroundLayer {
         SEED = seed;
 
         this.context = context;
-        shape = new boolean[ISLAND_CONTAINER_SIZE][ISLAND_CONTAINER_SIZE][ISLAND_CONTAINER_SIZE];
-        water = new boolean[ISLAND_CONTAINER_SIZE][ISLAND_CONTAINER_SIZE][ISLAND_CONTAINER_SIZE];
-        this.blocks = new Block[ISLAND_CONTAINER_SIZE][ISLAND_CONTAINER_SIZE][ISLAND_CONTAINER_SIZE];
+        blocks = new Block[ISLAND_CONTAINER_SIZE][ISLAND_CONTAINER_SIZE][ISLAND_CONTAINER_SIZE];
         this.trees = new boolean[ISLAND_CONTAINER_SIZE][ISLAND_CONTAINER_SIZE];
         this.topside = new float[ISLAND_CONTAINER_SIZE][ISLAND_CONTAINER_SIZE];
         this.topsideNoise = new float[ISLAND_CONTAINER_SIZE][ISLAND_CONTAINER_SIZE];
 
-        float topMagnitudeMultiplyer =  ISLAND_SIZE / 10f;
+        float topMagnitudeMultiplier =  ISLAND_SIZE / 10f;
         ISLAND_GROUND_HEIGHT = (int) (ISLAND_SIZE / 1.8);
 
-        TOPSIDE_MAGNITUDE = generateRandomFloat(topMagnitudeMultiplyer / 10,
-                topMagnitudeMultiplyer);
+        TOPSIDE_MAGNITUDE = generateRandomFloat(topMagnitudeMultiplier / 10,
+                topMagnitudeMultiplier);
         TOPSIDE_FREQUENCY = generateRandomFloat(0.01f, 0.05f);
         TOPSIDE_OFFSET = TOPSIDE_MAGNITUDE;
 
@@ -63,7 +57,7 @@ public class FlyingIsland extends GroundLayer {
 
     public void generateIsland() {
         // Generate the shape of the island
-        context.getPlayer().sendMessage(Text.of("SEED: " + SEED), false);
+        Objects.requireNonNull(context.getPlayer()).sendMessage(Text.of("SEED: " + SEED), false);
         context.getPlayer().sendMessage(Text.of("Topside Magnitude: " + TOPSIDE_MAGNITUDE), false);
         context.getPlayer().sendMessage(Text.of("Topside Frequency: " + TOPSIDE_FREQUENCY), false);
         context.getPlayer().sendMessage(Text.of("Topside Offset: " + TOPSIDE_OFFSET), false);
@@ -82,28 +76,19 @@ public class FlyingIsland extends GroundLayer {
 
         generateGroundLayer();
 
-        // Insert the ground layer into the shape array
-//        for (int x = 0; x < ISLAND_CONTAINER_SIZE; x++) {
-//            for (int z = 0; z < ISLAND_CONTAINER_SIZE; z++) {
-//                shape[x][ISLAND_GROUND_HEIGHT][z] = groundLayer.getBlock(x, z);
-//            }
-//        }
-
         undersideGenerator();
         topsideGenerator();
 
         // Add water to the island and generate lakes and rivers
         lakeGenerator();
 
+        orphanRemover();
+
         // Generates the blocks according to desired biome along with foliage and trees
         blockPopulator();
 
-        // Smoothing the edges of the island
-//        blockSmoothing();
-
         sandDecorator();
-
-
+        Objects.requireNonNull(context.getPlayer()).sendMessage(Text.of("Completed"), false);
     }
 
     // ------------------------------- PLACER AND DELETER -------------------------------
@@ -113,6 +98,7 @@ public class FlyingIsland extends GroundLayer {
             for (int y = 0; y < ISLAND_CONTAINER_SIZE; y++) {
                 for (int z = 0; z < ISLAND_CONTAINER_SIZE; z++) {
                     if (blocks[x][y][z] != null && blocks[x][y][z] != Blocks.AIR) {
+//                        FlyingIslands.LOGGER.info("Placing block at: " + pos.add(x, y, z));
                         world.setBlockState(pos.add(x, y, z), blocks[x][y][z].getDefaultState(), 3);
                     }
                 }
@@ -143,24 +129,19 @@ public class FlyingIsland extends GroundLayer {
     // ------------------------------- BLOCK POPULATOR -------------------------------
 
     public void blockPopulator() {
+        FlyingIslands.LOGGER.info("Island Container Size: " + ISLAND_CONTAINER_SIZE);
         for (int x = 0; x < ISLAND_CONTAINER_SIZE; x++) {
             for (int z = 0; z < ISLAND_CONTAINER_SIZE; z++) {
                 for (int y = 0; y < ISLAND_CONTAINER_SIZE; y++) {
-                    if(water[x][y][z]) {
-                        blocks[x][y][z] = Blocks.WATER;
-                    }
-                    else if (shape[x][y][z]) {
-                        if (distanceToSurface(x, y, z) <= (OpenSimplex2S.noise2(SEED,
-                                x * DIRT_FREQUENCY, z * DIRT_FREQUENCY) + 3) * DIRT_MAGNITUDE) {
+                    if (blocks[x][y][z] == Blocks.STONE) {
+                        if (distanceToSurface(x, y, z) <= (OpenSimplex2S.noise2(SEED, x * DIRT_FREQUENCY, z * DIRT_FREQUENCY) + 3) * DIRT_MAGNITUDE) {
                             if (isSurface(x, y, z)) {
                                 blocks[x][y][z] = Blocks.GRASS_BLOCK;
                             }
                             else {
                                 blocks[x][y][z] = Blocks.DIRT;
                             }
-                            continue;
                         }
-                        blocks[x][y][z] = Blocks.STONE;
                     }
                 }
             }
@@ -168,61 +149,151 @@ public class FlyingIsland extends GroundLayer {
     }
 
     // ------------------------------- BLOCK SMOOTHING -------------------------------
-    // If a Grass or Dirt block has 3 or more blocks of air around it, set it to air
-    public void blockSmoothing() {
-        int passes = 3;
+    // Using a flood fill algorithm track the blocks that are touching and remove any blocks that
+    // are orphaned
+    public void orphanRemover() {
+        // Initial start point
+        int[] start = new int[]{ISLAND_CONTAINER_RADIUS,
+                getSurfaceHeight(ISLAND_CONTAINER_RADIUS, ISLAND_CONTAINER_RADIUS),
+                ISLAND_CONTAINER_RADIUS};
 
-        int blocksRemoved = 0;
-        for (int pass = 0; pass < passes; pass++) {
-            for (int x = 0; x < ISLAND_CONTAINER_SIZE; x++) {
-                for (int z = 0; z < ISLAND_CONTAINER_SIZE; z++) {
-                    for (int y = 0; y < ISLAND_CONTAINER_SIZE; y++) {
-                        if (blocks[x][y][z] == Blocks.GRASS_BLOCK || blocks[x][y][z] == Blocks.DIRT) {
-                            int touchingBlocks = getTouchingAirBlocks(x, y, z);
-                            if(touchingBlocks >= 4){
-                                blocks[x][y][z] = Blocks.AIR;
-                                blocksRemoved++;
-                            }
+        // Initialize visited set
+        Set<String> visited = new HashSet<>();
+        List<int[]> connectedBlocks = new ArrayList<>();
+        List<int[]> waterBlocks = new ArrayList<>();
+
+        // Start the flood fill algorithm to find the main island
+        floodFill(start, visited, connectedBlocks, waterBlocks);
+
+        FlyingIslands.LOGGER.info("Connected Blocks: " + connectedBlocks.size());
+
+        // Find the max and min x, y, z values of the connected blocks to make a new container
+        int[][] container  = getNewContainerSize(connectedBlocks);
+
+        int[] lowValues = container[0];
+        int[] highValues = container[1];
+
+        int lowest = Math.min(lowValues[0], Math.min(lowValues[1], lowValues[2]));
+        int highest = Math.max(highValues[0], Math.max(highValues[1], highValues[2]));
+
+        int newContainerSize = highest - lowest;
+        // Create a new 3D array to store the connected blocks
+        Block[][][] copy = new Block[newContainerSize][newContainerSize][newContainerSize];
+
+        // Find difference between the new and old container size
+        ISLAND_CONTAINER_SIZE = newContainerSize;
+
+        FlyingIslands.LOGGER.info("Lowest: " + Arrays.toString(lowValues));
+        FlyingIslands.LOGGER.info("Highest: " + Arrays.toString(highValues));
+
+        // Copy the connected blocks to the new container
+        for (int[] block : connectedBlocks) {
+            int x = block[0];
+            int y = block[1];
+            int z = block[2];
+            copy[x - lowValues[0]][y - lowValues[1]][z - lowValues[2]] = blocks[x][y][z];
+        }
+
+        for (int[] block : waterBlocks) {
+            int x = block[0];
+            int y = block[1];
+            int z = block[2];
+            copy[x - lowValues[0]][y - lowValues[1]][z - lowValues[2]] = blocks[x][y][z];
+        }
+
+        blocks = copy;
+
+    }
+
+    private int[][] getNewContainerSize(List<int[]> connectedBlocks) {
+        int minX = ISLAND_CONTAINER_SIZE;
+        int minY = ISLAND_CONTAINER_SIZE;
+        int minZ = ISLAND_CONTAINER_SIZE;
+        int maxX = 0;
+        int maxY = 0;
+        int maxZ = 0;
+
+        // Find the max and min x, y, z values of the connected blocks
+        for (int[] block : connectedBlocks) {
+            int x = block[0];
+            int y = block[1];
+            int z = block[2];
+            if (x < minX) {
+                minX = x;
+            }
+            if (x > maxX) {
+                maxX = x;
+            }
+            if (y < minY) {
+                minY = y;
+            }
+            if (y > maxY) {
+                maxY = y;
+            }
+            if (z < minZ) {
+                minZ = z;
+            }
+            if (z > maxZ) {
+                maxZ = z;
+            }
+        }
+
+        // Find the lowest and highest values
+        int[] lowValues = new int[]{minX, minY, minZ};
+        int[] highValues = new int[]{maxX, maxY, maxZ};
+
+        return new int[][]{lowValues, highValues};
+
+    }
+
+    private void floodFill(int[] start, Set<String> visited, List<int[]> connectedBlocks, List<int[]> waterBlocks) {
+        Stack<int[]> stack = new Stack<>();
+        stack.push(start);
+
+        while (!stack.isEmpty()) {
+            int[] current = stack.pop();
+            int x = current[0];
+            int y = current[1];
+            int z = current[2];
+
+            // Mark the current block as visited
+            visited.add(x + "," + y + "," + z);
+
+            // Check if the current block is not an orphan and add it to connectedBlocks
+            if (blocks[x][y][z] != Blocks.AIR && blocks[x][y][z] != null) {
+                connectedBlocks.add(current);
+            }
+
+            // Define six directions: up, down, left, right, front, back
+            int[][] directions = {
+                    {0, 1, 0}, {0, -1, 0}, {-1, 0, 0}, {1, 0, 0}, {0, 0, -1}, {0, 0, 1}
+            };
+
+            for (int[] dir : directions) {
+                int newX = x + dir[0];
+                int newY = y + dir[1];
+                int newZ = z + dir[2];
+
+                // Check boundary conditions
+                if (newX >= 0 && newX < ISLAND_CONTAINER_SIZE &&
+                        newY >= 0 && newY < ISLAND_CONTAINER_SIZE &&
+                        newZ >= 0 && newZ < ISLAND_CONTAINER_SIZE) {
+                    // Check if the neighboring block hasn't been visited
+                    if(blocks[newX][newY][newZ] != Blocks.AIR &&
+                            blocks[newX][newY][newZ] != null &&
+                            !visited.contains(newX + "," + newY + "," + newZ)) {
+                        // Can propagate from stone to water or from stone to stone or from water to
+                        // water,but not water to stone
+                        if (blocks[x][y][z] == Blocks.WATER && blocks[newX][newY][newZ] != Blocks.WATER) {
+                            continue;
                         }
-                        if(blocks[x][y][z] == Blocks.STONE) {
-                            int touchingBlocks = getTouchingAirBlocks(x, y, z);
-                            if(touchingBlocks == 6) {
-                                blocks[x][y][z] = Blocks.AIR;
-                                blocksRemoved++;
-                            }
-                        }
+                        stack.push(new int[]{newX, newY, newZ});
                     }
                 }
             }
         }
-        FlyingIslands.LOGGER.info("Blocks Removed: " + blocksRemoved);
     }
 
-    private boolean airAbove(int x, int y, int z) {
-        if(blocks[x][y + 1][z] == null)
-            return true;
-        return blocks[x][y + 1][z].getDefaultState() == Blocks.AIR.getDefaultState();
-    }
-
-    private int getTouchingAirBlocks(int x, int y, int z) {
-        int touchingBlocks = 0;
-        if(blocks[x][y][z + 1] == null || blocks[x][y][z + 1].getDefaultState() == Blocks.AIR.getDefaultState()){
-            touchingBlocks++;
-        }
-        if(blocks[x][y][z - 1] == null || blocks[x][y][z - 1].getDefaultState() == Blocks.AIR.getDefaultState()){
-            touchingBlocks++;
-        }
-        if(blocks[x + 1][y][z] == null || blocks[x + 1][y][z].getDefaultState() == Blocks.AIR.getDefaultState()){
-            touchingBlocks++;
-        }
-        if(blocks[x - 1][y][z] == null || blocks[x - 1][y][z].getDefaultState() == Blocks.AIR.getDefaultState()){
-            touchingBlocks++;
-        }
-        if(blocks[x][y + 1][z] == null || blocks[x][y + 1][z].getDefaultState() == Blocks.AIR.getDefaultState()){
-            touchingBlocks++;
-        }
-        return touchingBlocks;
-    }
 
     // ------------------------------- WATER FILLER -------------------------------
     // A recursive function that looks at each block surrounding the current block
@@ -230,28 +301,24 @@ public class FlyingIsland extends GroundLayer {
     // height value below the ground layer, then do the same for the blocks surrounding the
     // current block
     public void lakeCreator(int x, int z) {
-
         float noise =
-                (OpenSimplex2S.noise2(SEED, x * TOPSIDE_FREQUENCY, z * TOPSIDE_FREQUENCY)) * TOPSIDE_MAGNITUDE * 2;
-        int height = (int) (ISLAND_GROUND_HEIGHT + noise);
+                (OpenSimplex2S.noise2(SEED, x * TOPSIDE_FREQUENCY, z * TOPSIDE_FREQUENCY)) ;
+        int height = (int) (ISLAND_GROUND_HEIGHT + noise * (TOPSIDE_MAGNITUDE + LAKE_MAGNITUDE));
 
         if ((x < 0 || x >= ISLAND_CONTAINER_SIZE || z < 0 || z >= ISLAND_CONTAINER_SIZE))
             return;
 
-        if(!shape[x][height][z] || water[x][height][z])
+        if(blocks[x][height][z] == Blocks.WATER || blocks[x][height][z] == null)
             return;
 
-        FlyingIslands.LOGGER.info("Noise: " + noise);
-
-        if (noise < -0.1f) {
-            for (int y = height; y <= ISLAND_GROUND_HEIGHT; y++) {
-                shape[x][y][z] = false;
-                water[x][y][z] = true;
+        if (noise < -0.25) {
+            for (int y = height; y <= ISLAND_GROUND_HEIGHT - 1; y++) {
+                blocks[x][y][z] = null;
+                lakeCreator(x + 1, z);
+                lakeCreator(x - 1, z);
+                lakeCreator(x, z + 1);
+                lakeCreator(x, z - 1);
             }
-            lakeCreator(x + 1, z);
-            lakeCreator(x - 1, z);
-            lakeCreator(x, z + 1);
-            lakeCreator(x, z - 1);
         }
     }
 
@@ -265,7 +332,7 @@ public class FlyingIsland extends GroundLayer {
 
             for (int x = 0; x < ISLAND_CONTAINER_SIZE; x++) {
                 for (int z = 0; z < ISLAND_CONTAINER_SIZE; z++) {
-                    if (topsideNoise[x][z] < lowest && groundLayer.getBlock(x, z) && distanceFromEdge(x, z) > 3) {
+                    if (topsideNoise[x][z] < lowest && groundLayer.getBlock(x, z)) {
                         lowest = topsideNoise[x][z];
                         lowestX = x;
                         lowestZ = z;
@@ -281,7 +348,7 @@ public class FlyingIsland extends GroundLayer {
             floodFill3D(lowestX, ISLAND_GROUND_HEIGHT, lowestZ);
 
         // Generate rivers
-        riverGenerator();
+//        riverGenerator();
     }
 
     public void riverGenerator() {
@@ -297,7 +364,7 @@ public class FlyingIsland extends GroundLayer {
 
         for (int x = 0; x < ISLAND_CONTAINER_SIZE; x++) {
             for (int z = 0; z < ISLAND_CONTAINER_SIZE; z++) {
-                if (water[x][ISLAND_GROUND_HEIGHT][z]) {
+                if (blocks[x][ISLAND_GROUND_HEIGHT][z] == Blocks.WATER) {
                     int distance = (int) Math.sqrt(Math.pow(x - (double) ISLAND_CONTAINER_SIZE / 2, 2) + Math.pow(z - (double) ISLAND_CONTAINER_SIZE / 2, 2));
                     if (distance > furthestDistance) {
                         furthestDistance = distance;
@@ -313,7 +380,7 @@ public class FlyingIsland extends GroundLayer {
     }
 
     public void riverCreator(int x, int z) {
-        //
+        // TODO: Implement riverCreator
     }
 
     // 3D Flood Fill algorithm to fill the water layer
@@ -328,15 +395,18 @@ public class FlyingIsland extends GroundLayer {
             int y = current[1];
             int z = current[2];
 
-            if (x < 0 || x >= ISLAND_CONTAINER_SIZE || y < 0 || y >= ISLAND_GROUND_HEIGHT || z < 0 || z >= ISLAND_CONTAINER_SIZE) {
+            if (x < 0 || x > ISLAND_CONTAINER_SIZE || y < 0 || y > ISLAND_GROUND_HEIGHT || z < 0 || z > ISLAND_CONTAINER_SIZE) {
                 continue;
             }
 
-            if (!groundLayer.getBlock(x, z) || shape[x][y][z] || water[x][y][z]) {
+            if(blocks[x][y][z] == Blocks.WATER || blocks[x][y][z] == Blocks.STONE)
+                continue;
+
+            if (voidBelow(x, y, z) || !groundLayer.getBlock(x, z)) {
                 continue;
             }
 
-            water[x][y][z] = true;
+            blocks[x][y][z] = Blocks.WATER;
 
             // Add neighboring points to the stack
             stack.push(new int[]{x + 1, y, z});
@@ -356,8 +426,12 @@ public class FlyingIsland extends GroundLayer {
         for (int x = 0; x < ISLAND_CONTAINER_SIZE; x++) {
             for (int z = 0; z < ISLAND_CONTAINER_SIZE; z++) {
                 for (int y = 0; y < ISLAND_CONTAINER_SIZE; y++) {
-                    if((distanceToNeighbour(Blocks.WATER, x, y, z, 3) != -1 ||
-                            isTouchingWater(x, y, z)) && blocks[x][y][z] == Blocks.GRASS_BLOCK) {
+                    if(blocks[x][y][z] == Blocks.WATER ||
+                            blocks[x][y][z] == null ||
+                            blocks[x][y][z] == Blocks.AIR)
+                        continue;
+                    if(distanceToNeighbour(Blocks.WATER, x, y, z, 3) != -1 ||
+                            isTouchingWater(x, y, z)) {
                         if(notFloating(x, y, z))
                             blocks[x][y][z] = Blocks.SAND;
                         else
@@ -389,6 +463,7 @@ public class FlyingIsland extends GroundLayer {
                 if (!groundLayer.getBlock(x, z)) {
                     continue;
                 }
+
                 // Once the topside value is more than 3, the value should be set to 3
                 int edgeMultiplier = topside[x][z] > 3 ? 3 : (int) topside[x][z];
 
@@ -403,11 +478,11 @@ public class FlyingIsland extends GroundLayer {
                 int height = (int) (ISLAND_GROUND_HEIGHT + noise);
                 if (noise < 0) {
                     for (int y = height + 1; y <= ISLAND_GROUND_HEIGHT; y++) {
-                        shape[x][y][z] = false;
+                        blocks[x][y][z] = Blocks.AIR;
                     }
                 } else {
-                    for (int y = (int) (ISLAND_GROUND_HEIGHT); y <= height; y++) {
-                        shape[x][y][z] = true;
+                    for (int y = ISLAND_GROUND_HEIGHT; y <= height; y++) {
+                        blocks[x][y][z] = Blocks.STONE;
                     }
                 }
             }
@@ -424,7 +499,6 @@ public class FlyingIsland extends GroundLayer {
         for (int x = 0; x < ISLAND_CONTAINER_SIZE; x++) {
             for (int z = 0; z < ISLAND_CONTAINER_SIZE; z++) {
                 // If there is a corresponding block in the groundLayer, determine its distance from the edge
-                boolean block = groundLayer.getBlock(x, z);
 
                 if (groundLayer.getBlock(x, z)) {
                     underside[x][z] = distanceFromEdge(x, z) * UNDERSIDE_STEEPNESS;
@@ -458,12 +532,10 @@ public class FlyingIsland extends GroundLayer {
                 }
 
                 for (int y = ISLAND_GROUND_HEIGHT; y >= depth; y--) {
-                    shape[x][y][z] = true;
+                    blocks[x][y][z] = Blocks.STONE;
                 }
             }
         }
-        Objects.requireNonNull(context.getPlayer()).sendMessage(Text.of("Completed"), false);
-
     }
 
     // ------------------------------- UTILITY FUNCTIONS -------------------------------
@@ -508,12 +580,12 @@ public class FlyingIsland extends GroundLayer {
 
     // Takes the coordinates of a block and returns the distance to the surface of the island
     // If the block is on the surface, the distance will be 0
-    // The surface is a block in the shape array that itself is true has a false value in the y
+    // The surface is a block in the blocks array that itself is true has a false value in the y
     // value above it
     public int distanceToSurface(int x, int y, int z) {
         int distance = 0;
         while (y + distance < ISLAND_CONTAINER_SIZE) {
-            if (shape[x][y + distance][z]) {
+            if (blocks[x][y + distance][z] != Blocks.AIR && blocks[x][y + distance][z] != null) {
                 distance++;
             } else
                 return distance;
@@ -523,7 +595,8 @@ public class FlyingIsland extends GroundLayer {
 
     // Does a block have an air block above it
     public boolean isSurface(int x, int y, int z) {
-        return shape[x][y][z] && !shape[x][y + 1][z];
+        return (blocks[x][y][z] == Blocks.STONE || blocks[x][y][z] == Blocks.WATER) &&
+                blocks[x][y + 1][z] == Blocks.AIR || blocks[x][y + 1][z] == null || blocks[x][y + 1][z] == Blocks.WATER;
     }
 
     Block getBlock(int x, int y, int z) {
@@ -531,7 +604,7 @@ public class FlyingIsland extends GroundLayer {
     }
 
     // Give Coordinates to a block and checks if there is any water around it
-    static boolean isTouchingWater(int x, int y, int z) {
+    boolean isTouchingWater(int x, int y, int z) {
         // Split in individual checks to avoid going outside the array size
         if (x + 1 < ISLAND_CONTAINER_SIZE && getWater(x + 1, y, z)) {
             return true;
@@ -548,12 +621,24 @@ public class FlyingIsland extends GroundLayer {
         return y + 1 < ISLAND_CONTAINER_SIZE && getWater(x, y + 1, z);
     }
 
-    private static boolean getWater(int x, int y, int z) {
-        return water[x][y][z];
+    private boolean getWater(int x, int y, int z) {
+        return blocks[x][y][z] == Blocks.WATER;
     }
 
-    static boolean notFloating(int x, int y, int z) {
-        return shape[x][y - 1][z];
+    private boolean notFloating(int x, int y, int z) {
+        if(y - 1 < 0)
+            return false;
+        return blocks[x][y - 1][z] != null &&
+                blocks[x][y - 1][z] != Blocks.AIR &&
+                blocks[x][y - 1][z] != Blocks.WATER;
+    }
+
+    private boolean voidBelow(int x, int y, int z) {
+        for(int i = y; i >= 0; i--) {
+            if(blocks[x][i][z] != null && blocks[x][i][z] != Blocks.AIR)
+                return false;
+        }
+        return true;
     }
 
     public int distanceToNeighbour(Block blockType, int x, int y, int z, int searchDistance){
@@ -592,7 +677,7 @@ public class FlyingIsland extends GroundLayer {
         for (int x = 0; x < ISLAND_CONTAINER_SIZE; x++) {
             for (int z = 0; z < ISLAND_CONTAINER_SIZE; z++) {
                 for (int y = 0; y < ISLAND_CONTAINER_SIZE; y++) {
-                    if (water[x][y][z]) {
+                    if (blocks[x][y][z] == Blocks.WATER) {
                         coords[0] = x; // Store x coordinate
                         coords[1] = y; // Store y coordinate
                         coords[2] = z; // Store z coordinate
@@ -602,5 +687,14 @@ public class FlyingIsland extends GroundLayer {
             }
         }
         return null; // Return null if no water is found
+    }
+
+    public int getSurfaceHeight(int x, int z) {
+        for (int y = ISLAND_GROUND_HEIGHT; y > 0; y--) {
+            if (blocks[x][y][z] == Blocks.STONE) {
+                return y;
+            }
+        }
+        return -1;
     }
 }
