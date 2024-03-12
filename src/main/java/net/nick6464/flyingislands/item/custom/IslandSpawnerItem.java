@@ -31,8 +31,7 @@ public class IslandSpawnerItem extends Item {
             flyingIsland.generateIsland();
             if (context.getHand() == Hand.MAIN_HAND) {
                 flyingIsland.placeIsland(context.getWorld(), context.getBlockPos());
-                IslandDecorators decorator = new IslandDecorators(flyingIsland);
-                decorator.jungleDecorator();
+//                IslandDecorators.jungleDecorator();
             }
             else if (context.getHand() == Hand.OFF_HAND) {
                 flyingIsland.deleteIsland(context.getWorld(), context.getBlockPos());
