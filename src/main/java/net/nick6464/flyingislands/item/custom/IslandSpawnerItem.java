@@ -12,6 +12,7 @@ import net.minecraft.world.World;
 import net.nick6464.flyingislands.FlyingIslands;
 import net.minecraft.entity.player.PlayerEntity;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 
 public class IslandSpawnerItem extends Item {
@@ -31,7 +32,13 @@ public class IslandSpawnerItem extends Item {
             flyingIsland.generateIsland();
             if (context.getHand() == Hand.MAIN_HAND) {
                 flyingIsland.placeIsland(context.getWorld(), context.getBlockPos());
-//                IslandDecorators.jungleDecorator();
+                IslandDecorators decorator = new IslandDecorators(flyingIsland);
+                try {
+                    decorator.jungleDecorator();
+                } catch (NoSuchMethodException | InvocationTargetException |
+                         IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                }
             }
             else if (context.getHand() == Hand.OFF_HAND) {
                 flyingIsland.deleteIsland(context.getWorld(), context.getBlockPos());

@@ -160,4 +160,8 @@ public class GroundLayer {
     public float generateRandomFloat(float lowerBound, float upperBound) {
         return random.nextFloat() * (upperBound - lowerBound) + lowerBound;
     }
+
+    public int getIslandContainerSize() {
+        return ISLAND_CONTAINER_SIZE;
+    }
 }
