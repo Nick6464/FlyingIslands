@@ -77,10 +77,10 @@ public class FlyingIsland extends GroundLayer {
         generateGroundLayer();
 
         undersideGenerator();
-//        topsideGenerator();
+        topsideGenerator();
 
         // Add water to the island and generate lakes and rivers
-//        lakeGenerator();
+        lakeGenerator();
 
         orphanRemover();
 

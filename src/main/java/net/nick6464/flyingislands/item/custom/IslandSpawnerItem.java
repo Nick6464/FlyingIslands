@@ -1,5 +1,6 @@
 package net.nick6464.flyingislands.item.custom;
 
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.block.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -18,7 +19,7 @@ import java.util.ArrayList;
 public class IslandSpawnerItem extends Item {
 
     public int SEED = 998;
-
+//    public int SEED = 674;
     public IslandSpawnerItem(Settings settings) {
         super(settings);
     }
@@ -35,8 +36,7 @@ public class IslandSpawnerItem extends Item {
                 IslandDecorators decorator = new IslandDecorators(flyingIsland);
                 try {
                     decorator.jungleDecorator();
-                } catch (NoSuchMethodException | InvocationTargetException |
-                         IllegalAccessException e) {
+                } catch (CommandSyntaxException e) {
                     throw new RuntimeException(e);
                 }
             }
