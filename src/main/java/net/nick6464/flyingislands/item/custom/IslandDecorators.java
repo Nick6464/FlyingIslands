@@ -111,12 +111,8 @@ public class IslandDecorators {
                                 BlockPos to,
                                 RegistryEntry<Biome> biome) throws CommandSyntaxException {
 
-        BlockPos blockPos2;
-        BlockPos blockPos = convertPos(from);
-        BlockBox blockBox = BlockBox.create(blockPos, blockPos2 = convertPos(to));
-
+        BlockBox blockBox = BlockBox.create(from, to);
         ServerWorld serverWorld = (ServerWorld) island.context.getWorld();
-        MinecraftServer server = serverWorld.getServer();
         List<Chunk> chunks = new ArrayList<>();
 
         for (int k = ChunkSectionPos.getSectionCoord(blockBox.getMinZ()); k <= ChunkSectionPos.getSectionCoord(blockBox.getMaxZ()); ++k) {
@@ -154,13 +150,4 @@ public class IslandDecorators {
             return registryEntry2;
         };
     }
-
-    private static int convertCoordinate(int coordinate) {
-        return BiomeCoords.toBlock(BiomeCoords.fromBlock(coordinate));
-    }
-
-    private static BlockPos convertPos(BlockPos pos) {
-        return new BlockPos(convertCoordinate(pos.getX()), convertCoordinate(pos.getY()), convertCoordinate(pos.getZ()));
-    }
-
 }
