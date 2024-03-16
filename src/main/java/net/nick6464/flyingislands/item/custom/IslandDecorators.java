@@ -77,7 +77,7 @@ public class IslandDecorators {
         FlyingIslands.LOGGER.info("Valid biomes: " + validBiomes.size());
 
         // Select a random biome from valid biomes
-        int biomeIndex = random.nextInt(validBiomes.size()) - 1;
+        int biomeIndex = random.nextInt(validBiomes.size());
         Biome randBiome = validBiomes.get(biomeIndex);
 
         String biomeName = Objects.requireNonNull(registryManager.get(RegistryKeys.BIOME).getId(validBiomes.get(biomeIndex))).getPath();
