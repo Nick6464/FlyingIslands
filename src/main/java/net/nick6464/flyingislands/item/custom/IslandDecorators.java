@@ -1,20 +1,13 @@
 package net.nick6464.flyingislands.item.custom;
 
-import com.mojang.brigadier.builder.ArgumentBuilder;
-import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
-import net.minecraft.command.argument.BlockPosArgumentType;
-import net.minecraft.command.argument.RegistryEntryArgumentType;
-import net.minecraft.command.argument.RegistryEntryPredicateArgumentType;
 import net.minecraft.registry.*;
 import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.registry.tag.BiomeTags;
+import net.minecraft.registry.tag.TagKey;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.command.FillBiomeCommand;
-import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
@@ -25,37 +18,34 @@ import net.minecraft.util.math.random.LocalRandom;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.biome.source.BiomeCoords;
 import net.minecraft.world.biome.source.BiomeSupplier;
-import net.minecraft.world.biome.source.MultiNoiseBiomeSource;
-import net.minecraft.world.biome.source.util.MultiNoiseUtil;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ChunkStatus;
 import net.minecraft.world.gen.feature.*;
 import net.nick6464.flyingislands.FlyingIslands;
 import org.apache.commons.lang3.mutable.MutableInt;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Predicate;
+import java.util.Objects;
+import java.util.Random;
 
 import static net.minecraft.server.command.FillBiomeCommand.UNLOADED_EXCEPTION;
 
 public class IslandDecorators {
 
     private static FlyingIsland island;
-    static LocalRandom random;
+    private final LocalRandom random;
 
-    public IslandDecorators(FlyingIsland island) {
+    public IslandDecorators(FlyingIsland island, int seed) {
         super();
         IslandDecorators.island = island;
-        IslandDecorators.random = new LocalRandom(FlyingIsland.SEED);
+        this.random = new LocalRandom(seed);
     }
 
-    public void jungleDecorator() throws CommandSyntaxException {
-        if (island.context.getWorld().isClient()) {
-            FlyingIslands.LOGGER.info("Client side jungleDecorator() called");
+    public void randomDecorator() throws CommandSyntaxException {
+        if (island.context.getWorld().isClient())
             return;
-        }
+
         // Get all chunks in the island
         BlockPos placedPos = island.context.getBlockPos();
         BlockPos to = placedPos.add(FlyingIsland.ISLAND_CONTAINER_SIZE, FlyingIsland.ISLAND_CONTAINER_SIZE, FlyingIsland.ISLAND_CONTAINER_SIZE);
@@ -64,19 +54,44 @@ public class IslandDecorators {
         MinecraftServer server = world.getServer();
 
         DynamicRegistryManager registryManager = server.getRegistryManager();
-        String biomeId = "jungle";
-        Biome biome = registryManager.get(RegistryKeys.BIOME).get(Identifier.of("minecraft", biomeId));
 
-        RegistryEntry<Biome> biomeEntry = registryManager.get(RegistryKeys.BIOME).getEntry(biome);
+        List<Biome> validBiomes = new ArrayList<>();
+        List<Biome> biomes = new ArrayList<>();
+        registryManager.get(RegistryKeys.BIOME).forEach(biomes::add);
 
-        FlyingIslands.LOGGER.info("Biome Entry: " + biomeEntry);
+        for (Biome biome : biomes) {
+
+            RegistryEntry<Biome> regEntry = registryManager.get(RegistryKeys.BIOME).getEntry(biome);
+
+            if (regEntry.isIn(BiomeTags.IS_OVERWORLD) &&
+                    !regEntry.isIn(BiomeTags.IS_NETHER) &&
+                    !regEntry.isIn(BiomeTags.IS_END) &&
+                    !regEntry.isIn(BiomeTags.IS_OCEAN) &&
+                    !regEntry.isIn(BiomeTags.IS_RIVER) &&
+                    !regEntry.isIn(BiomeTags.IS_DEEP_OCEAN) &&
+                    !regEntry.isIn(BiomeTags.IS_BEACH)){
+                validBiomes.add(biome);
+            }
+        }
+
+        FlyingIslands.LOGGER.info("Valid biomes: " + validBiomes.size());
+
+        // Select a random biome from valid biomes
+        int biomeIndex = random.nextInt(validBiomes.size()) - 1;
+        Biome randBiome = validBiomes.get(biomeIndex);
+
+        String biomeName = Objects.requireNonNull(registryManager.get(RegistryKeys.BIOME).getId(validBiomes.get(biomeIndex))).getPath();
+
+        // Tell the player which biome was chosen
+        Objects.requireNonNull(island.context.getPlayer()).sendMessage(Text.of("Biome: " + biomeName), false);
+
+        RegistryEntry<Biome> biomeEntry = registryManager.get(RegistryKeys.BIOME).getEntry(randBiome);
 
         int failed = setBiome(placedPos, to, biomeEntry);
-        FlyingIslands.LOGGER.info("Failed to change " + failed + " blocks to " + biomeId);
 
-        assert biome != null;
-        for (int x = 0; x < FlyingIsland.ISLAND_CONTAINER_SIZE; x++) {
-            for (int z = 0; z < FlyingIsland.ISLAND_CONTAINER_SIZE; z++) {
+        assert randBiome != null;
+        for (int x = 0; x < FlyingIsland.ISLAND_CONTAINER_SIZE; x += 4) {
+            for (int z = 0; z < FlyingIsland.ISLAND_CONTAINER_SIZE; z += 4) {
                 // For each feature in the biome, place it in the island
                 int groundY = getGroundHeight(x, z);
                 if(groundY == -1) continue;
@@ -87,8 +102,10 @@ public class IslandDecorators {
 
 
                 for (RegistryEntry<PlacedFeature> featureEntry :
-                        biome.getGenerationSettings().getFeatures().get(9)) {
+                        randBiome.getGenerationSettings().getFeatures().get(9)) {
+
                     PlacedFeature feature = featureEntry.value();
+
                     feature.generate(world,
                             world.getChunkManager().getChunkGenerator(),
                             random,

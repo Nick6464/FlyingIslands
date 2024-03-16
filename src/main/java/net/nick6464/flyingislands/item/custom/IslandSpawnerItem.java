@@ -1,7 +1,6 @@
 package net.nick6464.flyingislands.item.custom;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import net.minecraft.block.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ItemUsageContext;
@@ -12,9 +11,6 @@ import net.minecraft.util.TypedActionResult;
 import net.minecraft.world.World;
 import net.nick6464.flyingislands.FlyingIslands;
 import net.minecraft.entity.player.PlayerEntity;
-
-import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
 
 public class IslandSpawnerItem extends Item {
 
@@ -33,9 +29,9 @@ public class IslandSpawnerItem extends Item {
             flyingIsland.generateIsland();
             if (context.getHand() == Hand.MAIN_HAND) {
                 flyingIsland.placeIsland(context.getWorld(), context.getBlockPos());
-                IslandDecorators decorator = new IslandDecorators(flyingIsland);
+                IslandDecorators decorator = new IslandDecorators(flyingIsland, SEED);
                 try {
-                    decorator.jungleDecorator();
+                    decorator.randomDecorator();
                 } catch (CommandSyntaxException e) {
                     throw new RuntimeException(e);
                 }
@@ -55,7 +51,7 @@ public class IslandSpawnerItem extends Item {
         // If the player is sneaking and not in the air
         if (user.isSneaking() && !world.isClient()) {
             // Randomise the SEED
-            setSEED((int) (Math.random() * 1000));
+            setSEED((int) (Math.random() * Integer.MAX_VALUE));
             user.sendMessage(Text.of("SEED: " + SEED), false);
             FlyingIslands.LOGGER.info("SEED: " + SEED);
         }
