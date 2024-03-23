@@ -7,13 +7,13 @@ import java.util.Random;
 public class GroundLayer {
     public static int RADIAL_DETAIL_MULTIPLIER = 0;
     public static boolean[][] groundLayer = new boolean[0][];
-    public static int ISLAND_SIZE = 0;
-    public static int ISLAND_RADIUS = 0;
-    public static int ISLAND_CONTAINER_SIZE = 0;
-    public static int ISLAND_CONTAINER_RADIUS = 0;
+    public static int ISLAND_SIZE;
+    public static int ISLAND_RADIUS;
+    public static int ISLAND_CONTAINER_SIZE;
+    public static int ISLAND_CONTAINER_RADIUS;
     public static int SEED;
-    public static float GROUNDLAYER_FREQUENCY = 0f;
-    static float GROUNDLAYER_MAGNITUDE = 2f;
+    public static float GROUNDLAYER_FREQUENCY;
+    static float GROUNDLAYER_MAGNITUDE;
     public static float LAKE_MAGNITUDE = 0.5f;
     static int SMOOTHING_PASSES = 2;
     public static Random random;
@@ -21,7 +21,7 @@ public class GroundLayer {
     public GroundLayer(int seed) {
         random = new Random(SEED);
 
-        ISLAND_SIZE = generateRandomNumber(10, 100);
+        ISLAND_SIZE = generateRandomNumber(10, 64);
         ISLAND_RADIUS = ISLAND_SIZE / 2;
         ISLAND_CONTAINER_SIZE = ISLAND_SIZE * 2;
         ISLAND_CONTAINER_RADIUS = ISLAND_CONTAINER_SIZE / 2;

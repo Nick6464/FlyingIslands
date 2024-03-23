@@ -1,0 +1,5 @@
+{
+  "variants": {
+    "": { "model":  "flyingislands:block/island_spawner_block" }
+  }
+}

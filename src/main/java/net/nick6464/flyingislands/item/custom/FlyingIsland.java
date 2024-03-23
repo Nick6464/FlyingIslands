@@ -3,6 +3,7 @@ package net.nick6464.flyingislands.item.custom;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.item.ItemUsageContext;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -23,8 +24,8 @@ public class FlyingIsland extends GroundLayer {
     float TOPSIDE_MAGNITUDE;
     double TOPSIDE_FREQUENCY;
     float TOPSIDE_OFFSET;
-    private final float[][] topside;
-    private final float[][] topsideNoise;
+    private float[][] topside;
+    private float[][] topsideNoise;
     static float DIRT_MAGNITUDE = 1.5f;
     static float DIRT_FREQUENCY = 0.5f;
 
@@ -36,6 +37,17 @@ public class FlyingIsland extends GroundLayer {
         SEED = seed;
 
         this.context = context;
+        initialization();
+    }
+
+    // No context generation
+    public FlyingIsland(int seed) {
+        super(seed);
+        SEED = seed;
+        initialization();
+    }
+
+    private void initialization() {
         blocks = new Block[ISLAND_CONTAINER_SIZE][ISLAND_CONTAINER_SIZE][ISLAND_CONTAINER_SIZE];
         this.trees = new boolean[ISLAND_CONTAINER_SIZE][ISLAND_CONTAINER_SIZE];
         this.topside = new float[ISLAND_CONTAINER_SIZE][ISLAND_CONTAINER_SIZE];
@@ -89,6 +101,30 @@ public class FlyingIsland extends GroundLayer {
 
         sandDecorator();
         Objects.requireNonNull(context.getPlayer()).sendMessage(Text.of("Completed"), false);
+    }
+
+    // No context generation
+    public void generateIslandStructure() {
+        // Generate the shape of the island
+        blocks = new Block[ISLAND_CONTAINER_SIZE][ISLAND_CONTAINER_SIZE][ISLAND_CONTAINER_SIZE];
+        trees = new boolean[ISLAND_CONTAINER_SIZE][ISLAND_CONTAINER_SIZE];
+        topside = new float[ISLAND_CONTAINER_SIZE][ISLAND_CONTAINER_SIZE];
+        topsideNoise = new float[ISLAND_CONTAINER_SIZE][ISLAND_CONTAINER_SIZE];
+
+        generateGroundLayer();
+
+        undersideGenerator();
+        topsideGenerator();
+
+        // Add water to the island and generate lakes and rivers
+        lakeGenerator();
+
+        orphanRemover();
+
+        // Generates the blocks according to desired biome along with foliage and trees
+        blockPopulator();
+
+        sandDecorator();
     }
 
     // ------------------------------- PLACER AND DELETER -------------------------------
@@ -592,8 +628,12 @@ public class FlyingIsland extends GroundLayer {
                 blocks[x][y + 1][z] == Blocks.AIR || blocks[x][y + 1][z] == null || blocks[x][y + 1][z] == Blocks.WATER;
     }
 
-    Block getBlock(int x, int y, int z) {
+    public Block getBlock(int x, int y, int z) {
         return blocks[x][y][z];
+    }
+
+    public Block getBlock(BlockPos pos) {
+        return blocks[pos.getX()][pos.getY()][pos.getZ()];
     }
 
     // Give Coordinates to a block and checks if there is any water around it

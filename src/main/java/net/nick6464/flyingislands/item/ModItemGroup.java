@@ -8,14 +8,17 @@ import net.minecraft.registry.Registry;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.nick6464.flyingislands.FlyingIslands;
+import net.nick6464.flyingislands.block.ModBlocks;
 
 public class ModItemGroup {
 
     public static ItemGroup ISLAND_SPAWNER = Registry.register(Registries.ITEM_GROUP,
-            new Identifier(FlyingIslands.MOD_ID, "ruby"),
+            new Identifier(FlyingIslands.MOD_ID, "island_group"),
             FabricItemGroup.builder().displayName(Text.translatable("itemgroup.flyingislands"))
                     .icon(() -> new ItemStack(ModItems.ISLAND_SPAWNER)).entries((displayContext, entries) -> {
                         entries.add(ModItems.ISLAND_SPAWNER);
+
+                        entries.add(ModBlocks.ISLAND_SPAWNER_BLOCK);
                     }).build());
 
 

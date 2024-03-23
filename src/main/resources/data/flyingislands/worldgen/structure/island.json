@@ -1,0 +1,6 @@
+{
+  "type": "flyingislands:island",
+  "biomes": "#minecraft:is_ocean",
+  "step": "strongholds",
+  "spawn_overrides": {}
+}

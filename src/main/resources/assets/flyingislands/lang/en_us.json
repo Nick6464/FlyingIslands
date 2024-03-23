@@ -1,4 +1,5 @@
 {
+  "itemgroup.flyingislands.island_group": "Flying Islands",
   "item.flyingislands.island_spawner": "Island Spawner",
-  "item.flyingislands.island_deleter": "Island Deleter"
+  "block.flyingislands.island_spawner_block": "Island Spawner Block"
 }
