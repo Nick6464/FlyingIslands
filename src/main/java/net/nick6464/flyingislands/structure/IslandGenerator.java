@@ -22,7 +22,7 @@ import net.nick6464.flyingislands.item.custom.FlyingIsland;
 public class IslandGenerator extends ShiftableStructurePiece {
 
     public IslandGenerator(Random random, int x, int z) {
-        super(ModGenerators.ISLAND_GEN, x, 100, z, 7, 7, 9, getRandomHorizontalDirection(random));
+        super(ModGenerators.ISLAND_GEN, x, 75, z, 7, 7, 9, getRandomHorizontalDirection(random));
     }
 
     public IslandGenerator(NbtCompound nbtCompound) {
@@ -31,12 +31,8 @@ public class IslandGenerator extends ShiftableStructurePiece {
 
     public void generate(StructureWorldAccess world, StructureAccessor structureAccessor, ChunkGenerator chunkGenerator, Random random, BlockBox chunkBox, ChunkPos chunkPos, BlockPos pivot) {
         // Place the island block
-        this.addBlock(world, ModBlocks.ISLAND_SPAWNER_BLOCK.getDefaultState(),
-                1,
-                75,
-                1,
-                chunkBox);
+        this.addBlock(world, ModBlocks.ISLAND_SPAWNER_BLOCK.getDefaultState(), 8, 75, 8, chunkBox);
 
-        FlyingIslands.LOGGER.info("IslandGenerator generated");
+        FlyingIslands.LOGGER.info("Island Structure generated");
     }
 }

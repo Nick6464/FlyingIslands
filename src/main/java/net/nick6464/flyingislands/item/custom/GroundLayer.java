@@ -1,27 +1,28 @@
 package net.nick6464.flyingislands.item.custom;
 
+import net.minecraft.util.math.random.LocalRandom;
+import net.minecraft.util.math.random.Random;
 import net.nick6464.flyingislands.FlyingIslands;
 
-import java.util.Random;
 
 public class GroundLayer {
-    public static int RADIAL_DETAIL_MULTIPLIER = 0;
-    public static boolean[][] groundLayer = new boolean[0][];
-    public static int ISLAND_SIZE;
-    public static int ISLAND_RADIUS;
-    public static int ISLAND_CONTAINER_SIZE;
-    public static int ISLAND_CONTAINER_RADIUS;
-    public static int SEED;
-    public static float GROUNDLAYER_FREQUENCY;
+    public int RADIAL_DETAIL_MULTIPLIER = 0;
+    public boolean[][] groundLayer = new boolean[0][];
+    public int ISLAND_SIZE;
+    public int ISLAND_RADIUS;
+    public int ISLAND_CONTAINER_SIZE;
+    public int ISLAND_CONTAINER_RADIUS;
+    public int SEED;
+    public float GROUNDLAYER_FREQUENCY;
     static float GROUNDLAYER_MAGNITUDE;
-    public static float LAKE_MAGNITUDE = 0.5f;
+    public float LAKE_MAGNITUDE = 0.5f;
     static int SMOOTHING_PASSES = 2;
-    public static Random random;
+    public LocalRandom random;
 
     public GroundLayer(int seed) {
-        random = new Random(SEED);
+        random = new LocalRandom(seed);
 
-        ISLAND_SIZE = generateRandomNumber(10, 64);
+        ISLAND_SIZE = generateRandomNumber(10, 100);
         ISLAND_RADIUS = ISLAND_SIZE / 2;
         ISLAND_CONTAINER_SIZE = ISLAND_SIZE * 2;
         ISLAND_CONTAINER_RADIUS = ISLAND_CONTAINER_SIZE / 2;
@@ -34,7 +35,7 @@ public class GroundLayer {
         SEED = seed;
     }
 
-    public static void generateGroundLayer() {
+    public void generateGroundLayer() {
         radialNoiseGenerator();
         smoothHardCorners();
         floodFill(ISLAND_CONTAINER_SIZE / 2, ISLAND_CONTAINER_SIZE / 2);
@@ -48,7 +49,7 @@ public class GroundLayer {
 
     }
 
-    public static void radialNoiseGenerator(){
+    public void radialNoiseGenerator(){
         // Use the block count in the circle to determine the number of blocks in a perfect circle
         int blockCount = RADIAL_DETAIL_MULTIPLIER * blocksInCircle();
 
@@ -87,7 +88,7 @@ public class GroundLayer {
     }
 
     // Flood fill algorithm to make the island solid
-    public static void floodFill(int x, int z) {
+    public void floodFill(int x, int z) {
         if (x < 0 || x >= ISLAND_CONTAINER_SIZE || z < 0 || z >= ISLAND_CONTAINER_SIZE) {
             return;
         }
@@ -113,7 +114,7 @@ public class GroundLayer {
     // 0 1 0 0 0
     // 0 1 0 0 0
     // by removing the hard corners
-    public static void smoothHardCorners(){
+    public void smoothHardCorners(){
         for (int smoothing = 0; smoothing < SMOOTHING_PASSES; smoothing++){
             for (int x = 0; x < ISLAND_CONTAINER_SIZE; x++) {
                 for (int z = 0; z < ISLAND_CONTAINER_SIZE; z++) {
@@ -147,13 +148,13 @@ public class GroundLayer {
 
 
     // This method should return the number of blocks in a perfect circle based on the ISLAND_SIZE
-    public static int blocksInCircle() {
+    public int blocksInCircle() {
         // The blocks can be calculated by diameter - 1 * 4
         return (ISLAND_SIZE - 1) * 4;
     }
 
     // Gets the next random number based on the seed
-    public static int generateRandomNumber(int lowerBound, int upperBound) {
+    public int generateRandomNumber(int lowerBound, int upperBound) {
         return random.nextInt(upperBound - lowerBound + 1) + lowerBound;
     }
 

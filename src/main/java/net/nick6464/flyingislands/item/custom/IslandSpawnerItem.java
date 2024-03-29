@@ -8,6 +8,8 @@ import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.TypedActionResult;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.random.Random;
 import net.minecraft.world.World;
 import net.nick6464.flyingislands.FlyingIslands;
 import net.minecraft.entity.player.PlayerEntity;
@@ -29,9 +31,12 @@ public class IslandSpawnerItem extends Item {
             flyingIsland.generateIsland();
             if (context.getHand() == Hand.MAIN_HAND) {
                 flyingIsland.placeIsland(context.getWorld(), context.getBlockPos());
-                IslandDecorators decorator = new IslandDecorators(flyingIsland, SEED);
+                IslandDecorators decorator = new IslandDecorators(flyingIsland);
                 try {
-                    decorator.randomDecorator();
+                    decorator.randomDecorator(flyingIsland.random,
+                            new BlockPos(context.getBlockPos().getX() - flyingIsland.ISLAND_RADIUS,
+                                    100,
+                                    context.getBlockPos().getZ() - flyingIsland.ISLAND_RADIUS));
                 } catch (CommandSyntaxException e) {
                     throw new RuntimeException(e);
                 }

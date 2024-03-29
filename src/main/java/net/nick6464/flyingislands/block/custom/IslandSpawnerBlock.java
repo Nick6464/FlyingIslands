@@ -1,5 +1,6 @@
 package net.nick6464.flyingislands.block.custom;
 
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.block.*;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.BlockEntityTicker;
@@ -31,6 +32,12 @@ public class IslandSpawnerBlock extends BlockWithEntity implements BlockEntityPr
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(World world, BlockState state, BlockEntityType<T> type) {
         return validateTicker(type, ModBlockEntities.ISLAND_SPAWNER_BLOCK_ENTITY,
-                (world1, pos, state1, blockEntity) -> blockEntity.tick(world1, pos, state1));
+                (world1, pos, state1, blockEntity) -> {
+                    try {
+                        blockEntity.tick(world1, pos);
+                    } catch (CommandSyntaxException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
     }
 }

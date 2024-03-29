@@ -3,10 +3,15 @@ package net.nick6464.flyingislands.item.custom;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.item.ItemUsageContext;
-import net.minecraft.nbt.NbtCompound;
+import net.minecraft.registry.DynamicRegistryManager;
+import net.minecraft.registry.RegistryKeys;
+import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.registry.tag.BiomeTags;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraft.world.biome.Biome;
 import net.nick6464.flyingislands.FlyingIslands;
 
 import java.util.*;
@@ -26,24 +31,26 @@ public class FlyingIsland extends GroundLayer {
     float TOPSIDE_OFFSET;
     private float[][] topside;
     private float[][] topsideNoise;
-    static float DIRT_MAGNITUDE = 1.5f;
-    static float DIRT_FREQUENCY = 0.5f;
+    float DIRT_MAGNITUDE = 1.5f;
+    float DIRT_FREQUENCY = 0.5f;
+    Biome biome;
+    public ServerWorld serverWorld;
+    public RegistryEntry<Biome> biomeRegistryEntry;
 
-    GroundLayer groundLayer = new GroundLayer(SEED);
 
     public FlyingIsland(int seed, ItemUsageContext context) {
         super(seed);
-
         SEED = seed;
-
         this.context = context;
+        serverWorld = (ServerWorld) context.getWorld();
         initialization();
     }
 
     // No context generation
-    public FlyingIsland(int seed) {
+    public FlyingIsland(int seed, ServerWorld world) {
         super(seed);
         SEED = seed;
+        serverWorld = world;
         initialization();
     }
 
@@ -61,10 +68,10 @@ public class FlyingIsland extends GroundLayer {
         TOPSIDE_FREQUENCY = generateRandomFloat(0.01f, 0.05f);
         TOPSIDE_OFFSET = TOPSIDE_MAGNITUDE;
 
-        UNDERSIDE_FREQUENCY = generateRandomFloat(0.5f, 1f);
-        UNDERSIDE_MAGNITUDE = generateRandomFloat(0.2f, 1.2f);
+        UNDERSIDE_FREQUENCY = generateRandomFloat(0.2f, 0.8f);
+        UNDERSIDE_MAGNITUDE = generateRandomFloat(0.2f, 3f);
         UNDERSIDE_STEEPNESS = generateRandomFloat(0.5f, 1.5f);
-
+        selectBiome();
     }
 
     public void generateIsland() {
@@ -368,7 +375,7 @@ public class FlyingIsland extends GroundLayer {
 
             for (int x = 0; x < ISLAND_CONTAINER_SIZE; x++) {
                 for (int z = 0; z < ISLAND_CONTAINER_SIZE; z++) {
-                    if (topsideNoise[x][z] < lowest && groundLayer.getBlock(x, z)) {
+                    if (topsideNoise[x][z] < lowest && getBlock(x, z)) {
                         lowest = topsideNoise[x][z];
                         lowestX = x;
                         lowestZ = z;
@@ -431,7 +438,7 @@ public class FlyingIsland extends GroundLayer {
             if(blocks[x][y][z] == Blocks.WATER || blocks[x][y][z] == Blocks.STONE)
                 continue;
 
-            if (voidBelow(x, y, z) || !groundLayer.getBlock(x, z)) {
+            if (voidBelow(x, y, z) || !getBlock(x, z)) {
                 continue;
             }
 
@@ -478,7 +485,7 @@ public class FlyingIsland extends GroundLayer {
         for (int x = 0; x < ISLAND_CONTAINER_SIZE; x++) {
             for (int z = 0; z < ISLAND_CONTAINER_SIZE; z++) {
                 // If there is a corresponding block in the groundLayer, determine its distance from the edge
-                if (groundLayer.getBlock(x, z)) {
+                if (getBlock(x, z)) {
                     topside[x][z] = distanceFromEdge(x, z);
                 }
             }
@@ -489,7 +496,7 @@ public class FlyingIsland extends GroundLayer {
         for (int x = 0; x < ISLAND_CONTAINER_SIZE; x++) {
             for (int z = 0; z < ISLAND_CONTAINER_SIZE; z++) {
                 // Ensure there is a block in the ground layer
-                if (!groundLayer.getBlock(x, z)) {
+                if (!getBlock(x, z)) {
                     continue;
                 }
 
@@ -529,7 +536,7 @@ public class FlyingIsland extends GroundLayer {
             for (int z = 0; z < ISLAND_CONTAINER_SIZE; z++) {
                 // If there is a corresponding block in the groundLayer, determine its distance from the edge
 
-                if (groundLayer.getBlock(x, z)) {
+                if (getBlock(x, z)) {
                     underside[x][z] = distanceFromEdge(x, z) * UNDERSIDE_STEEPNESS;
                 }
             }
@@ -540,7 +547,7 @@ public class FlyingIsland extends GroundLayer {
         for (int x = 0; x < ISLAND_CONTAINER_SIZE; x++) {
             for (int z = 0; z < ISLAND_CONTAINER_SIZE; z++) {
                 // Ensure there is a block in the ground layer
-                if (!groundLayer.getBlock(x, z)) {
+                if (!getBlock(x, z)) {
                     continue;
                 }
 
@@ -574,25 +581,25 @@ public class FlyingIsland extends GroundLayer {
             boolean found = false;
             for (int i = -distance; i <= distance; i++) {
                 if (x + i >= 0 && x + i < ISLAND_CONTAINER_SIZE && z - distance >= 0 && z - distance < ISLAND_CONTAINER_SIZE) {
-                    if (!groundLayer.getBlock(x + i, z - distance)) {
+                    if (!getBlock(x + i, z - distance)) {
                         return distance;
                     }
                     found = true;
                 }
                 if (x + i >= 0 && x + i < ISLAND_CONTAINER_SIZE && z + distance >= 0 && z + distance < ISLAND_CONTAINER_SIZE) {
-                    if (!groundLayer.getBlock(x + i, z + distance)) {
+                    if (!getBlock(x + i, z + distance)) {
                         return distance;
                     }
                     found = true;
                 }
                 if (z + i >= 0 && z + i < ISLAND_CONTAINER_SIZE && x - distance >= 0 && x - distance < ISLAND_CONTAINER_SIZE) {
-                    if (!groundLayer.getBlock(x - distance, z + i)) {
+                    if (!getBlock(x - distance, z + i)) {
                         return distance;
                     }
                     found = true;
                 }
                 if (z + i >= 0 && z + i < ISLAND_CONTAINER_SIZE && x + distance >= 0 && x + distance < ISLAND_CONTAINER_SIZE) {
-                    if (!groundLayer.getBlock(x + distance, z + i)) {
+                    if (!getBlock(x + distance, z + i)) {
                         return distance;
                     }
                     found = true;
@@ -704,6 +711,39 @@ public class FlyingIsland extends GroundLayer {
         return -1;
     }
 
+    private void selectBiome() {
+        DynamicRegistryManager registryManager = serverWorld.getRegistryManager();
+
+        List<Biome> validBiomes = new ArrayList<>();
+        List<Biome> biomes = new ArrayList<>();
+        registryManager.get(RegistryKeys.BIOME).forEach(biomes::add);
+
+        for (Biome biome : biomes) {
+
+            RegistryEntry<Biome> regEntry = registryManager.get(RegistryKeys.BIOME).getEntry(biome);
+
+            if (regEntry.isIn(BiomeTags.IS_OVERWORLD) &&
+                    !regEntry.isIn(BiomeTags.IS_NETHER) &&
+                    !regEntry.isIn(BiomeTags.IS_END) &&
+                    !regEntry.isIn(BiomeTags.IS_OCEAN) &&
+                    !regEntry.isIn(BiomeTags.IS_RIVER) &&
+                    !regEntry.isIn(BiomeTags.IS_DEEP_OCEAN) &&
+                    !regEntry.isIn(BiomeTags.IS_BEACH)){
+                validBiomes.add(biome);
+            }
+        }
+
+        // Select a random biome from valid biomes
+        int biomeIndex = random.nextInt(validBiomes.size());
+        Biome randBiome = validBiomes.get(biomeIndex);
+
+        RegistryEntry<Biome> biomeEntry = registryManager.get(RegistryKeys.BIOME).getEntry(randBiome);
+
+        biome = randBiome;
+        biomeRegistryEntry = biomeEntry;
+        assert randBiome != null;
+    }
+
     public int[] hasWater() {
         int[] coords = new int[3]; // Array to store coordinates
 
@@ -730,6 +770,4 @@ public class FlyingIsland extends GroundLayer {
         }
         return -1;
     }
-
-
 }
