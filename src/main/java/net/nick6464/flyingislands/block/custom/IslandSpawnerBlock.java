@@ -7,6 +7,7 @@ import net.minecraft.block.entity.BlockEntityTicker;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.nick6464.flyingislands.FlyingIslands;
 import net.nick6464.flyingislands.block.entity.ModBlockEntities;
 import net.nick6464.flyingislands.block.entity.custom.IslandSpawnerBlockEntity;
 import org.jetbrains.annotations.Nullable;
@@ -36,7 +37,7 @@ public class IslandSpawnerBlock extends BlockWithEntity implements BlockEntityPr
                     try {
                         blockEntity.tick(world1, pos);
                     } catch (CommandSyntaxException e) {
-                        throw new RuntimeException(e);
+                        FlyingIslands.LOGGER.error("Error ticking IslandSpawnerBlockEntity");
                     }
                 });
     }

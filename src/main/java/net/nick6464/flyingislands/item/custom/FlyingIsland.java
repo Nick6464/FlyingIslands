@@ -68,7 +68,7 @@ public class FlyingIsland extends GroundLayer {
         TOPSIDE_FREQUENCY = generateRandomFloat(0.01f, 0.05f);
         TOPSIDE_OFFSET = TOPSIDE_MAGNITUDE;
 
-        UNDERSIDE_FREQUENCY = generateRandomFloat(0.2f, 0.8f);
+        UNDERSIDE_FREQUENCY = generateRandomFloat(1f, 3f);
         UNDERSIDE_MAGNITUDE = generateRandomFloat(0.2f, 3f);
         UNDERSIDE_STEEPNESS = generateRandomFloat(0.5f, 1.5f);
         selectBiome();
