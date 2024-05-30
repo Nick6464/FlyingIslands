@@ -57,7 +57,7 @@ Lakes are made by taking the lowest area of noise in the topside and amplifying 
 
 ### Decorations
 
-Right now the island is just a shape. To make it appear more natural decorations are used, such as adding dirt and grass to the surface of the island, sand or clay replaces blocks touching water, and biome relevant plants are added to the island and water.
+Right now the island is just a shape. The Decorations are my attempt to spawn relevant features such as trees and flowers in a similar number to the overworld. I'm wanting to favour rarer features, since the space and land mass of islands is far lower than the standard over world
 
 ## Progess Images
 
