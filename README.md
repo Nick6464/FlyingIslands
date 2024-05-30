@@ -22,7 +22,7 @@ This is a mod made using the Fabric API that adds Flying Islands to Minecraft. I
 
 ![Savanna](https://github.com/Nick6464/FlyingIslands/blob/main/Progress%20Log/FullyRandomBiomesSavahna.png?raw=true)
 
-![Woods](https://github.com/Nick6464/FlyingIslands/blob/main/Progress%20Log/InterestingOnes.png?raw=true)
+![Woods](https://github.com/Nick6464/FlyingIslands/blob/main/Progress%20Log/FullyRandomIslands.png?raw=true)
 
 ## Goals
 
