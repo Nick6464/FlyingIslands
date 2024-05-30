@@ -7,10 +7,9 @@ This is a mod made using the Fabric API that adds Flying Islands to Minecraft. I
 ## Features
 
 - Flying Islands
-- Fully Customizable Island Generation
+- Fully Customizable Island Generation of any Minecraft Biome
 - Customizable Island Sizes
 - Customizable Island Heights
-- Currently only has Plains Biome Islands
 
 ## Examples
 
